@@ -7,7 +7,6 @@ import sys
 import re
 
 import simplejson as json
-from BeautifulSoup import BeautifulSoup
 
 LNK_URL = 'http://lnkgo.alfa.lt'
 LNK_LATEST_VIDEOS = LNK_URL + '/visi-video/list/new?start=%d'
@@ -27,32 +26,17 @@ sys.setdefaultencoding('utf8')
 
 def getTvShowsList():
   
-  html = getURL(LNK_ALL_VIDEOS)  
-  soup = BeautifulSoup(html)
-  
-  if not soup:
-    return None
+  html = getURL(LNK_ALL_VIDEOS)
   
   shows = []
   
-  for link in soup.findAll('a', { 'data-type' : 'program' } ):
-    
+  parts = re.findall('<a\s*.*?data\-program="([^"]*)".*?\s*<span\s*class="show\-title">([^<]*)<span', html, re.DOTALL)
+  for link in parts:
     show = {}
-    
-    program = link.get('data-program')
-    if program:
-      show['program'] = program
-    else:
-      continue
-      
-    title = link.findAll('span', { 'class' : 'show-title' } )
-    if title:
-      show['title'] = title[0].getText().strip()
-    else:
-      continue
-    
+    show['program'] = link[0]
+    show['title'] = link[1]
     shows.append(show)
-  
+   
   return shows
 
 def search(key, page=0):
@@ -71,49 +55,49 @@ def get_latest_videos(page=0):
   return getInfo(LNK_LATEST_VIDEOS % (page * 35))
 
 def getInfo(url):
-  html = getURL(url)
-  html = re.sub('<p\s+class="time-left">.*?<\/p>', '', html)
-  soup = BeautifulSoup(html)
   
-  if not soup:
-    return None
+  html = getURL(url)
   
   data = []
-  for link in soup.findAll('a', { 'class' : 'grid-item' } ):
+  
+  r_href = re.compile('href="([^"]*)"', re.DOTALL)
+  r_bi = re.compile("background-image: url\(\'([^\']*)\'\);", re.DOTALL)
+  r_title = re.compile('<h2>([^<]*)<\/h2>', re.DOTALL)
+  r_episode = re.compile('(\/\s*(\d+)\s*$)', re.DOTALL)
+  r_aired = re.compile('class="date">(\d{4} \d{2} \d{2})\s*<\/span>', re.DOTALL)
+  r_plot = re.compile('class="desc">([^<]*)</p>', re.DOTALL)
+  
+  parts = re.findall('<a[^<>]*class="grid\-item">.*?<\/a>', html, re.DOTALL)
+  for part in parts:
     
     video = {}
-   
-    title = link.findAll('h2')    
-    if title:
-      title = title[0].getText()
-      
-      episode = re.findall('(\/\s*(\d+)\s*$)', title)
-      if episode:
-	video['episode'] = int(episode[0][1])
-	
-	#title = title[:-len(episode[0][0])].strip()
-      
-      video['title'] = title
-        
-    style = link.get('style')
-    if style:
-      bi = re.findall("background-image: url\(\'([^\']*)\'\);", style)
-      if bi:
-	video['thumbnailURL'] = LNK_URL + bi[0]
-    
-    url = link.get('href')
-    if url:
-      video['url'] = url
+
+    href = re.findall(r_href, part)
+
+    if href:
+      video['url'] = href[0]
     else:
       continue
-      
-    date = link.findAll('span', { 'class' : 'date'})
-    if date:
-      video['aired'] = date[0].getText().replace(' ', '.')
     
-    plot = link.findAll('p', { 'class' : 'desc' })
+    bi = re.findall(r_bi, part)
+    if bi:
+      video['thumbnailURL'] = LNK_URL + bi[0]
+    
+    title = re.findall(r_title, part)
+    if title:
+      video['title'] = title[0]
+      
+      episode = re.findall(r_episode, title[0])
+      if episode:
+	video['episode'] = int(episode[0][1])
+    
+    aired = re.findall(r_aired, part)
+    if aired:
+      video['aired'] = aired[0].replace(' ', '.')
+      
+    plot = re.findall(r_plot, part)
     if plot:
-      video['plot'] = plot[0].getText().strip()
+      video['plot'] = plot[0].strip()
     
     data.append(video)
     
@@ -122,6 +106,7 @@ def getInfo(url):
 def getVideo(url):
   
   html = getURL(LNK_URL + url)  
+  
   data = re.findall('episodePlayer\(({.*?)}\s*,\s*{(.*?})\);', html, re.DOTALL)
   
   if not data:
@@ -145,7 +130,3 @@ def getVideo(url):
     result['thumbnailURL'] = LNK_URL + js['VideoCover']
 
   return result
-  
-
-if __name__ == '__main__': 
-  print getTvShowsList()
