@@ -11,7 +11,7 @@ import xbmcaddon
 
 import liblnk as lnk
 
-settings = xbmcaddon.Addon(id='plugin.video.delfi.lt')
+settings = xbmcaddon.Addon(id='plugin.video.lnk.lt')
 
 def getParameters(parameterString):
   commands = {}
