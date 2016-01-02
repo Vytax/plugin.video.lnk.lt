@@ -114,9 +114,9 @@ def playVideo(url):
   
   if not data:
     dialog = xbmcgui.Dialog()
-    ok = dialog.ok( "DELFI TV" , 'Nepavyko paleisti vaizdo įrašo!' )
+    ok = dialog.ok( "LNK TV" , 'Nepavyko paleisti vaizdo įrašo!' )
     return
-    
+  
   listitem = xbmcgui.ListItem(label = data['title'])
   listitem.setPath(data['videoURL'])
   if 'thumbnailUrl' in data:
