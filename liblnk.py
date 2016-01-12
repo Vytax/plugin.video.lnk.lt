@@ -118,8 +118,15 @@ def getVideo(url):
   
   result = {}
   
-  if 'EpisodeVideoLink_HLS' in js:
-    result['videoURL'] = js['EpisodeVideoLink_HLS']
+  #if 'EpisodeVideoLink_HLS' in js:
+    #result['videoURL'] = js['EpisodeVideoLink_HLS']
+  #else:
+    #return None
+    
+  if 'EpisodeVideoLink' in js:
+    rtmp_url = js['EpisodeVideoLink']
+    i = rtmp_url.find('mp4:')
+    result['videoURL'] = rtmp_url[0:i] + ' playpath=' + rtmp_url[i:]
   else:
     return None
   
