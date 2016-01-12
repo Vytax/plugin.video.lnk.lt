@@ -33,8 +33,8 @@ def getTvShowsList():
   parts = re.findall('<a\s*.*?data\-program="([^"]*)".*?\s*<span\s*class="show\-title">([^<]*)<span', html, re.DOTALL)
   for link in parts:
     show = {}
-    show['program'] = link[0]
-    show['title'] = link[1]
+    show['program'] = link[0].strip()
+    show['title'] = link[1].strip()
     shows.append(show)
    
   return shows
