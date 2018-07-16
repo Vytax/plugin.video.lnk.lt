@@ -26,91 +26,117 @@ def getParameters(parameterString):
 
 def build_main_directory():
   
-  listitem = xbmcgui.ListItem('Naujausi video')
+  data = lnk.getLandingPage()
+
+  if data:
+    for item in data:
+
+      i_url = sys.argv[0]
+
+      if 'id' in item:
+        i_url = i_url + '?id=%d' % item['id']
+      elif 'feed' in item:
+        i_url = i_url + '?feed=%d' % item['feed']
+      elif 'filterId' in item:
+        i_url = i_url + '?filterId=%d' % item['filterId']
+      else:
+        continue
+
+      listitem = xbmcgui.ListItem(item['title'])
+      listitem.setProperty('IsPlayable', 'false')
+      xbmcplugin.addDirectoryItem(handle = int(sys.argv[1]), url = i_url, listitem = listitem, isFolder = True, totalItems = 0)
+
+  listitem = xbmcgui.ListItem('Mediateka')
   listitem.setProperty('IsPlayable', 'false')
-  xbmcplugin.addDirectoryItem(handle = int(sys.argv[1]), url = sys.argv[0] + '?mode=1&page=0', listitem = listitem, isFolder = True, totalItems = 0)
-  
-  listitem = xbmcgui.ListItem('Populiariausi video')
-  listitem.setProperty('IsPlayable', 'false')
-  xbmcplugin.addDirectoryItem(handle = int(sys.argv[1]), url = sys.argv[0] + '?mode=2&page=0', listitem = listitem, isFolder = True, totalItems = 0)
-  
-  listitem = xbmcgui.ListItem('Greitai baigsis')
-  listitem.setProperty('IsPlayable', 'false')
-  xbmcplugin.addDirectoryItem(handle = int(sys.argv[1]), url = sys.argv[0] + '?mode=3&page=0', listitem = listitem, isFolder = True, totalItems = 0)
-  
-  listitem = xbmcgui.ListItem('Laidos')
-  listitem.setProperty('IsPlayable', 'false')
-  xbmcplugin.addDirectoryItem(handle = int(sys.argv[1]), url = sys.argv[0] + '?mode=4', listitem = listitem, isFolder = True, totalItems = 0)
-  
+  xbmcplugin.addDirectoryItem(handle = int(sys.argv[1]), url = sys.argv[0] + '?media=start', listitem = listitem, isFolder = True, totalItems = 0)
+
   listitem = xbmcgui.ListItem('Paieška')
   listitem.setProperty('IsPlayable', 'false')
-  xbmcplugin.addDirectoryItem(handle = int(sys.argv[1]), url = sys.argv[0] + '?mode=5&page=0', listitem = listitem, isFolder = True, totalItems = 0)
+  xbmcplugin.addDirectoryItem(handle = int(sys.argv[1]), url = sys.argv[0] + '?searchStart=1', listitem = listitem, isFolder = True, totalItems = 0) 
   
   xbmcplugin.setContent(int( sys.argv[1] ), 'tvshows')
   xbmc.executebuiltin('Container.SetViewMode(515)')
   xbmcplugin.endOfDirectory(int(sys.argv[1]))
 
+def loadDirectory(dir, page=-1, page_params={}):
 
-def loadCategory(cat, page, url=None):
-  
-  videos = []
-  
-  if cat == 1:
-    videos = lnk.get_latest_videos(page)
-  elif cat == 2:
-    videos = lnk.get_popular_videos(page)
-  elif cat == 3:
-    videos = lnk.get_end_soon_videos(page)
-  elif mode == 5:
-    if not url:
-      dialog = xbmcgui.Dialog()
-      url = dialog.input('Vaizdo įrašo paieška', type=xbmcgui.INPUT_ALPHANUM)
-    if url:
-      videos = lnk.search(url, page)
-  elif cat == 20:
-    videos = lnk.getTvShow(url, page)
-    
-  for video in videos:
-    listitem = xbmcgui.ListItem(video['title'])
+  for item in dir:
+    listitem = xbmcgui.ListItem(item['title'])
     listitem.setProperty('IsPlayable', 'true')
-      
-    info = { 'title': video['title'], 'plot': video['plot']}
-    
-    if 'aired' in video:
-      info['aired'] = video['aired']
-        
-    if 'episode' in video:
-      info['episode'] = video['episode']
-        
-    listitem.setInfo(type = 'video', infoLabels = info )
-    
-    if 'thumbnailURL' in video:
-      listitem.setThumbnailImage(video['thumbnailURL'])
-      
-    u = {}
-    u['mode'] = 10
-    u['url'] = video['url']
-      
-    xbmcplugin.addDirectoryItem(handle = int(sys.argv[1]), url = sys.argv[0] + '?' + urllib.urlencode(u), listitem = listitem, isFolder = False, totalItems = 0)
-    
-  if videos and (len(videos)>33):
+
+    if 'thumbnailURL' in item:
+      listitem.setThumbnailImage(item['thumbnailURL'])
+      del item['thumbnailURL']
+
+    video_id = item['video_id']
+    del item['video_id']
+    listitem.setInfo(type = 'video', infoLabels = item )
+    xbmcplugin.addDirectoryItem(handle = int(sys.argv[1]), url = sys.argv[0] + '?' + urllib.urlencode({'video_id': video_id}), listitem = listitem, isFolder = False, totalItems = 0)
+
+  if page >= 0 and len(dir) > 39:
     listitem = xbmcgui.ListItem("[Daugiau... ] %d" % (page + 1))
     listitem.setProperty('IsPlayable', 'false')
       
-    u = {}
-    u['mode'] = mode
-    u['page'] = page + 1
-    if url:
-      u['url'] = url
-    xbmcplugin.addDirectoryItem(handle = int(sys.argv[1]), url = sys.argv[0] + '?' + urllib.urlencode(u), listitem = listitem, isFolder = True, totalItems = 0)
-    
+    page_params['page'] = page + 1
+    xbmcplugin.addDirectoryItem(handle = int(sys.argv[1]), url = sys.argv[0] + '?' + urllib.urlencode(page_params), listitem = listitem, isFolder = True, totalItems = 0)
+
+
   xbmcplugin.setContent(int( sys.argv[1] ), 'tvshows')
   xbmc.executebuiltin('Container.SetViewMode(503)')
   xbmcplugin.endOfDirectory(int(sys.argv[1]))
 
-def playVideo(url):
+def loadIdDirectory(dir_id):
+
+  data = lnk.getVideosFromLandingPage(dir_id)
+  loadDirectory(data)
+
+def loadFilterDirectory(filterId, page):
+
+  if page < 1:
+    page = 1
+
+  data = lnk.getVideosFromFilterPage(filterId, page)
+  loadDirectory(data, page, {'filterId': filterId})
+
+def loadMediaDirectory(mediaID, page=-1):
   
-  data = lnk.getVideo(url)
+  if mediaID == 'start':
+
+    data = lnk.getMediatekaPage()
+
+    for item in data:
+      listitem = xbmcgui.ListItem(item['title'])
+      listitem.setProperty('IsPlayable', 'false')
+      xbmcplugin.addDirectoryItem(handle = int(sys.argv[1]), url = sys.argv[0] + '?' + urllib.urlencode({'media': item['urlSegment']}), listitem = listitem, isFolder = True, totalItems = 0)
+
+    xbmcplugin.setContent(int( sys.argv[1] ), 'tvshows')
+    xbmc.executebuiltin('Container.SetViewMode(503)')
+    xbmcplugin.endOfDirectory(int(sys.argv[1]))
+
+  else:
+
+    if page < 1:
+      page = 1
+
+    data = lnk.getMediatekaPage(mediaID, page)
+    loadDirectory(data, page, {'media': mediaID})
+
+def searchVideo(key='', page=-1):
+
+  if page < 1:
+    page = 1
+
+  if not key:
+    dialog = xbmcgui.Dialog()
+    key = dialog.input('Vaizdo įrašo paieška', type=xbmcgui.INPUT_ALPHANUM)
+
+  if key:
+    data = lnk.searchVideo(key, page)
+    loadDirectory(data, page, {'search': key})
+
+def playVideo(video_id):
+  
+  data = lnk.getVideo(video_id)
   
   if not data:
     dialog = xbmcgui.Dialog()
@@ -123,53 +149,26 @@ def playVideo(url):
     listitem.setThumbnailImage(data['thumbnailUrl'])
   xbmcplugin.setResolvedUrl(handle = int(sys.argv[1]), succeeded = True, listitem = listitem)
   
-def build_tv_shows_list():
-  
-  shows = lnk.getTvShowsList()
-  
-  for show in shows:
-    u = {}
-    u['mode'] = 20
-    u['url'] = show['program']
-    u['page'] = 0
-    listitem = xbmcgui.ListItem(show['title'])
-    listitem.setProperty('IsPlayable', 'false')
-    xbmcplugin.addDirectoryItem(handle = int(sys.argv[1]), url = sys.argv[0] + '?' + urllib.urlencode(u), listitem = listitem, isFolder = True, totalItems = 0)
-    
-  xbmcplugin.setContent(int( sys.argv[1] ), 'tvshows')
-  xbmc.executebuiltin('Container.SetViewMode(515)')
-  xbmcplugin.endOfDirectory(int(sys.argv[1]))
-  
-
 # **************** main ****************
 
 path = sys.argv[0]
 params = getParameters(sys.argv[2])
-mode = None
-page = None
-url = None
+page = -1
 
-try:
-  mode = int(params["mode"])
-except:
-  pass
+if 'page' in params:
+  page = int(params['page'])
 
-try:
-  page = int(params["page"])
-except:
-  pass
-
-try:
-  url = urllib.unquote_plus(params["url"])
-except:
-  pass
-     
-if mode == None:
+if 'id' in params:
+  loadIdDirectory(int(params['id']))
+elif 'video_id' in params:
+  playVideo(urllib.unquote_plus(params['video_id']))
+elif 'filterId' in params:
+  loadFilterDirectory(int(params['filterId']), page)
+elif 'media' in params:
+  loadMediaDirectory(urllib.unquote_plus(params['media']), page)
+elif 'searchStart' in params:
+  searchVideo(None)
+elif 'search' in params:
+  searchVideo(urllib.unquote_plus(params['search']), page)
+else:
   build_main_directory()
-elif mode in [1, 2, 3, 5, 20]:
-  loadCategory(mode, page, url)
-elif mode == 4:
-  build_tv_shows_list()
-elif mode == 10:
-  playVideo(url)
-  
