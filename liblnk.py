@@ -195,9 +195,13 @@ def getVideo(video_id):
     return None  
 
   result = {}
+
+  secureTokenParams = ''
+  if 'secureTokenParams' in item and item['secureTokenParams']:
+    secureTokenParams = item['secureTokenParams']
   
   if 'videoUrl' in item and item['videoUrl']:
-    result['videoURL'] = WowzaVodUrl + item['videoUrl'] + '/playlist.m3u8'
+    result['videoURL'] = WowzaVodUrl + item['videoUrl'] + '/playlist.m3u8' + secureTokenParams
     print result['videoURL']
   else:
     return None
